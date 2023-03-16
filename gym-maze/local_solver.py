@@ -10,6 +10,8 @@ import gym_maze
 from gym_maze.envs.maze_manager import MazeManager
 from riddle_solvers import *
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore")
 
 def action_init():
     map_possible_movements = {(x,y) : ['N', 'W', 'E', 'S'] for x in range(10) for y in range(10)}
@@ -32,6 +34,9 @@ def action_init():
     return map_possible_movements
 
 def eleminiate_action(x, y, action):
+    print(map_possible_movements[x,y])
+    print(map_possible_movements[x-1,y])
+    print(action)
     if action == 'N':
         map_possible_movements[x,y].remove('N')
         map_possible_movements[x,y-1].remove('S')
@@ -88,6 +93,7 @@ def reconstruct_path(cameFrom, current):
         current = cameFrom[current]
         total_path.append(current)
     return total_path
+    
 
 def get_neighbours(curr, map_possible_movements):
     neighbours = []
@@ -123,7 +129,7 @@ def a_star(start, goal, map_possible_movements):
     # For each node, the total cost of getting from the start node to the goal
     # by passing by that node. That value is partly known, partly heuristic.
     fScore = {}
-    fScore[start] = manhattan_distance(start, goal) # we have 
+    fScore[start] = manhattan_distance(start, goal)
 
     while len(openSet) > 0:
         current = None
@@ -134,7 +140,7 @@ def a_star(start, goal, map_possible_movements):
                 current = pos
 
         if current == goal:
-            return reconstruct_path(cameFrom, current)
+            return cameFrom # reconstruct_path(cameFrom, current)
 
         openSet.remove(current)
         closedSet.add(current)
@@ -165,13 +171,37 @@ import time
 
 
 def get_actions(dict_path):
-    
+    path_actions = []
+    for key, value in dict_path.items():
+        if key[0]-value[0] == 1:
+            path_actions.append('W')
+        elif key[0]-value[0] == -1:
+            path_actions.append('E')
+        elif key[1]-value[1] == 1:
+            path_actions.append('N')
+        elif key[1]-value[1] == -1:
+            path_actions.append('S')
     return path_actions
+
+# def get_actions(list_path):
+#     path_actions = []
+#     print(list_path)
+#     for next_ in range(1, len(list_path)):
+#         if list_path[next_-1][0]-list_path[next_][0] == 1:
+#             path_actions.append('W')
+#         elif list_path[next_-1][0]-list_path[next_][0] == -1:
+#             path_actions.append('E')
+#         elif list_path[next_-1][1]-list_path[next_][1] == 1:
+#             path_actions.append('N')
+#         elif list_path[next_-1][1]-list_path[next_][1] == -1:
+#             path_actions.append('S')
+#     return path_actions
 
 def get_nearest_item(manhattan_distance, direction):
     if len(list(filter(lambda x: x > 0, manhattan_distance))) == 0:
         return (None, None)
-    return sorted(zip(manhattan_distance, direction), key=lambda x: x[0])[0]
+    filtered_list = filter(lambda x: x[0] > 0, zip(manhattan_distance, direction))
+    return sorted(filtered_list, key=lambda x: x[0])[0]
 
 path_actions = []
 def select_action(state):
@@ -193,12 +223,10 @@ def select_action(state):
 
     # print(path_actions)
 
-
-    # we recalculate the path if the agent reached the goal
+    # # we recalculate the path if the agent reached the goal
     # if len(path_actions) == 0:
     #     # TODO get the new goal
     #     goal_manhattan_distance, goal_direction=  get_nearest_item(state[1], state[2])
-    #     print(goal_manhattan_distance)
     #     if goal_manhattan_distance == None:
     #         goal = (9,9)
     #     else:
@@ -206,18 +234,20 @@ def select_action(state):
         
     #     get_path_dict = a_star(current_position, goal, map_possible_movements)
     #     path_actions = get_actions(get_path_dict)
-    
+        # print(get_path_dict)
+        # time.sleep(5)
     # we eleminate the actions that have walls in the way and the actions that are not possible
     # aslo we recalculate the path if the agent is stuck in wall and intarupted the path
     if (preiveous_position != None) and (preiveous_position == current_position):
+        # time.sleep(5)
         eleminiate_action(preiveous_position[0], preiveous_position[1], preiveous_action)
-        # get_path_dict = a_star(current_position, goal, map_possible_movements)
-        # path_actions = get_actions(get_path_dict)
-    
+        get_path_dict = a_star(current_position, goal, map_possible_movements)
+        path_actions = get_actions(get_path_dict)
+        # print(get_path_dict)
     
     
     # actions = path_actions.pop(0) # ["N", "S", "E", "W]
-
+    # print(actions)
     actions = map_possible_movements[(state[0][0], state[0][1])]
     random_action = random.choice(actions)
     action_index = actions.index(random_action)
@@ -230,7 +260,7 @@ def select_action(state):
     # print(state[1])
     # print(state[2])
     # print(preiveous_position)
-    return random_action, action_index
+    return random_action, action_index # action_index
 
 
 def local_inference(riddle_solvers):
