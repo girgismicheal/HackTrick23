@@ -19,8 +19,32 @@ class MazeManager():
         self.riddle_scores = {"cipher": 20, "server": 30, "pcap": 40, "captcha": 10}
     ## end init
 
+    # def init_maze(self, agent_id, maze_cells=None):
+    #     if(hasattr(maze_cells, 'shape')):
+    #         env = gym.make('maze-sample-10x10-v0', rescue_item_locations= list(self.rescue_items_dict.keys()), maze_cells=maze_cells, enable_render=True)
+    #         self.maze_map[agent_id] = env
+    #         state = self.maze_map[agent_id].reset()
+    #         env = None
+    #         self.init_riddles(agent_id)
+    #         return state
+    #     else:
+    #         raise Exception('Enter a Numpy array!')
     def init_maze(self, agent_id, maze_cells=None):
         if(hasattr(maze_cells, 'shape')):
+            
+            maze_cells = np.array([
+                            [4, 4, 4, 4, 4, 4, 4, 4, 4, 2],
+                            [2, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+                            [2, 4, 4, 4, 4, 4, 4, 4, 4, 2],
+                            [2, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+                            [4, 4, 4, 4, 4, 4, 4, 4, 4, 2],
+                            [8, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+                            [8, 4, 4, 4, 4, 4, 4, 4, 4, 2],
+                            [8, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+                            [8, 4, 4, 4, 4, 4, 4, 4, 4, 2],
+                            [8, 1, 1, 1, 1, 1, 1, 1, 1, 2]]
+            )
+
             env = gym.make('maze-sample-10x10-v0', rescue_item_locations= list(self.rescue_items_dict.keys()), maze_cells=maze_cells, enable_render=True)
             self.maze_map[agent_id] = env
             state = self.maze_map[agent_id].reset()
@@ -29,7 +53,6 @@ class MazeManager():
             return state
         else:
             raise Exception('Enter a Numpy array!')
-            
     ### end init maze
 
     def init_riddles(self, agent_id):

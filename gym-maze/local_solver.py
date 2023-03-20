@@ -72,13 +72,10 @@ def manhattan_distance(x, y):
     return abs(x[0] - y[0]) + abs(x[1] - y[1])
 
 def reconstruct_path(cameFrom, current):
-    print("reconstruct_path")
     total_path = [current]
     while current in cameFrom.keys():
         current = cameFrom[current]
         total_path.append(current)
-    print(cameFrom)
-    print(total_path)
     return total_path
     
 
@@ -156,7 +153,6 @@ preiveous_position = None
 preiveous_action = None
 import time
 
-
 # def get_actions(dict_path):
     
 #     path_actions = []
@@ -186,8 +182,6 @@ def get_actions(list_path):
             path_actions.append('N')
         elif list_path[next_-1][1]-list_path[next_][1] == -1:
             path_actions.append('S')
-    print(list_path)
-    print(path_actions)
     return path_actions
 
 def get_nearest_item(manhattan_distance, direction):
@@ -197,10 +191,8 @@ def get_nearest_item(manhattan_distance, direction):
     return sorted(filtered_list, key=lambda x: x[0])[0]
 
 path_actions = []
+
 def eleminiate_action(x, y, action):
-    # print("ele")
-    print(map_possible_movements[x,y])
-    print(action)
     if action == 'N':
         map_possible_movements[x,y].remove('N')
         map_possible_movements[x,y-1].remove('S')
@@ -216,6 +208,29 @@ def eleminiate_action(x, y, action):
 
 goal = None
 count = 0
+count_goal = 0
+##### get the goal index ##### 
+goal_points = [(None,None) for i in range(4)] # change to the state[2] length
+def update_goals_points(state):
+    global goal_points
+    for i in range(len(state[2])):
+        if goal_points[i] == (None,None):
+            conition =  np.array_equal([-1, 0], state[2][i]) or \
+                        np.array_equal([1, 0], state[2][i]) or \
+                        np.array_equal([0, 1], state[2][i]) or \
+                        np.array_equal([0, -1], state[2][i])
+            if conition:
+                goal_points[i] = get_all_possible_goals(state[0], state[1][i], state[2][i])
+    
+def get_goal_index(state, goal_manhattan_distance, goal_direction):
+  index = -1 
+  for i, dist in enumerate(state[1]):
+    if dist == goal_manhattan_distance and state[2][i] == goal_direction:
+      index = i
+      break
+  return index
+#######
+
 def select_action(state):
     # This is a random agent 
     # This function should get actions from your trained agent when inferencing.
@@ -236,18 +251,27 @@ def select_action(state):
     # path_actions = get_actions(current_position, goal, goal_manhattan_distance, map_possible_movements)
 
 
-    # # we recalculate the path if the agent reached the goal
+    # we recalculate the path if the agent reached the goal
     if len(path_actions) == 0:
         # TODO get the new goal
-        goal_manhattan_distance, goal_direction=  get_nearest_item(state[1], state[2])
+        goal_manhattan_distance, goal_direction =  get_nearest_item(state[1], state[2])
         if goal_manhattan_distance == None:
             goal = (9,9)
-        else:
-            goal = get_all_possible_goals(current_position, goal_manhattan_distance, goal_direction) # return the goal
-        
+        # else:
+        #     #### index_ added
+        #     # global count_goal 
+        #     # count_goal+=1
+        #     index = get_goal_index(state, goal_manhattan_distance, goal_direction)
+        #     if index != -1 and goal_points[index] != (None,None):
+        #         goal = goal_points[index]
+        #     else:
+        #         goal = get_all_possible_goals(current_position, goal_manhattan_distance, goal_direction) # return the goal
+        #     ########
         get_path_dict = a_star(current_position, goal, map_possible_movements)
         path_actions = get_actions(get_path_dict)
-
+        # print(path_actions)
+        # print(goal_manhattan_distance, goal_direction)
+        # print(goal)
 
     # we eleminate the actions that have walls in the way and the actions that are not possible
     # aslo we recalculate the path if the agent is stuck in wall and intarupted the path
@@ -255,27 +279,26 @@ def select_action(state):
         eleminiate_action(preiveous_position[0], preiveous_position[1], preiveous_action)
         get_path_dict = a_star(current_position, goal, map_possible_movements)
         path_actions = get_actions(get_path_dict)
+
+    # make sure that the agent get the deteministic goal's points
+    update_goals_points(state=state) ## added update_goals_points
+
     
-    time.sleep(1)
+
     actions = path_actions.pop(0) # ["N", "S", "E", "W]
-    # print(actions)
-    
-    # actions = map_possible_movements[(state[0][0], state[0][1])]
     
     random_action = actions #random.choice(actions)
     action_index = actions.index(random_action)
-    print("actions", actions, random_action)
+    # print("actions", actions, random_action)
     preiveous_position = current_position
     preiveous_action= random_action
-
-    # print(actions)
-    # print(random_action)
-    # print(state[1])
-    # print(state[2])
     
-    print(preiveous_position)
+    # print(preiveous_position)
+    # print(((count_goal*250 )/ count))
+    # print(state)
+    # print(goal_points)
     print(count)
-    print(state)
+    # time.sleep(.5)
     return random_action, action_index # action_index
 
 
@@ -288,7 +311,8 @@ def local_inference(riddle_solvers):
         state_0 = obv
         action, action_index = select_action(state_0) # Random action
         obv, reward, terminated, truncated, info = manager.step(agent_id, action)
-
+        
+        # print(manager.calculate_final_score(agent_id))
         if not info['riddle_type'] == None:
             solution = riddle_solvers[info['riddle_type']](info['riddle_question'])
             obv, reward, terminated, truncated, info = manager.solve_riddle(info['riddle_type'], agent_id, solution)
@@ -313,8 +337,9 @@ if __name__ == "__main__":
     
     manager = MazeManager()
     manager.init_maze(agent_id, maze_cells=sample_maze)
+    
     env = manager.maze_map[agent_id]
-
+    
     riddle_solvers = {'cipher': cipher_solver, 'captcha': captcha_solver, 'pcap': pcap_solver, 'server': server_solver}
     maze = {}
     states = {}
@@ -328,7 +353,7 @@ if __name__ == "__main__":
     
 
     local_inference(riddle_solvers)
-
+    # print(manager.calculate_final_score(agent_id), ))
     with open("./states.json", "w") as file:
         json.dump(states, file)
 
